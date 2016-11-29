@@ -71,8 +71,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>H:\myprojects\uTiny\uTinyEngine\src\FBX_SDK;H:\myprojects\uTiny\uTinyEngine\src\freetype\include;$(IncludePath)</IncludePath>
-    <LibraryPath>H:\myprojects\uTiny\uTinyEngine\src\FBX_SDK;H:\myprojects\uTiny\uTinyEngine\src\freeGLUT;H:\myprojects\uTiny\uTinyEngine\src\freetype;$(LibraryPath)</LibraryPath>
+    <IncludePath>.\src\FBX_SDK;.\src\freetype\include;$(IncludePath)</IncludePath>
+    <LibraryPath>.\src\FBX_SDK;.\src\freeGLUT;.\src\freetype;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
