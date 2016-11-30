@@ -19,7 +19,10 @@ void GameObject::Start()
 void GameObject::Update()
 {
 	for (auto component = components.begin();component != components.end();component++)
+	{
+		component->get()->gameObject = this;
 		component->get()->Update();
+	}
 	for (auto child = children.begin();child != children.end();child++)
 		child->get()->Update();
 

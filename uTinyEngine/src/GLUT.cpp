@@ -70,7 +70,7 @@ int Game::Run(Game* game) {
 	console.Resize(40, 20);
 	//console.WriteLine(L"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 52);
 	console.SetAsCurrent();
-	
+
 
 	glLightfv(GL_LIGHT0, GL_POSITION, sun_light_position); //指定第0号光源的位置   
 	glLightfv(GL_LIGHT0, GL_AMBIENT, sun_light_ambient); //GL_AMBIENT表示各种光线照射到该材质上，  
@@ -78,7 +78,7 @@ int Game::Run(Game* game) {
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, sun_light_diffuse); //漫反射后~~  
 	glLightfv(GL_LIGHT0, GL_SPECULAR, sun_light_specular);//镜面反射后~~~  
 
-	GLfloat material_ambient[] = { 0.3, 0.3, 0.3, 1.0 };//环境光  
+	GLfloat material_ambient[] = { 0.2, 0.2, 0.2, 1.0 };//环境光  
 	GLfloat material_diffuse[] = { 1, 1, 1, 1.0 };//漫反射光  
 	GLfloat material_specular[] = { 0, 0, 0, 1.0 };//镜面光  
 
@@ -104,12 +104,10 @@ void display()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	//debug
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	/*gluLookAt(3, 2, 4, 1, 1, -1, 0, 1, 0);
-	glGetFloatv(GL_MODELVIEW_MATRIX, viewMatrix);
-	glLoadIdentity();*/
+
+	//calculate view matrix
 	auto cam_mat = Camera::Main()->transform()->WorldMatrix;
 	gluLookAt(cam_mat[3][0], cam_mat[3][1], cam_mat[3][2],
 		cam_mat[3][0] + cam_mat[2][0], cam_mat[3][1] + cam_mat[2][1], cam_mat[3][2] + cam_mat[2][2],
@@ -118,28 +116,29 @@ void display()
 	glGetFloatv(GL_MODELVIEW_MATRIX, viewMatrix);
 	glLoadIdentity();
 
+	//calculate model transform matrix of each object
 	updateTransform((pGame->scene).get());
-	//glTranslatef(0, 1, 0);
-
-	/*glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	gluPerspective(60, 1.3333f, 1, 100);*/
 
 	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
+
+	//setup light0
 	glLoadMatrixf(viewMatrix);
 	glLightfv(GL_LIGHT0, GL_POSITION, sun_light_position);
 	glPopMatrix();
 
+	//update scene graph
 	if (pGame->scene != nullptr)
 		pGame->scene->Update();
 
+	//draw console text
 	drawConsole(Console::Current());
 
 	glutSwapBuffers();
 	updateInput();
 }
 
+//reshape is called when display window resized
 void reshape(int width, int height) {
 
 	glMatrixMode(GL_PROJECTION);
@@ -149,6 +148,7 @@ void reshape(int width, int height) {
 
 }
 
+//keyboard and mouse input change following values
 extern std::map<Key, KeyState> keyStates;
 extern std::map<Key, KeyEvent> keyEvents;
 
@@ -156,11 +156,11 @@ extern MousePosition lastMousePosition;
 extern MousePosition currentMousePosition;
 
 
-//键盘按下
+//key down
 void keyboardFunc(unsigned char key, int x, int y) {
 	keyStates[(Key)key] = KeyState::Down;
 }
-//键盘松开
+//key up
 void keyboardUpFunc(unsigned char key, int x, int y)
 {
 	//std::cout << "Key Up: key char = " << key << "  key ascii = " << (int)key << std::endl;
@@ -169,7 +169,7 @@ void keyboardUpFunc(unsigned char key, int x, int y)
 
 
 
-//鼠标按键
+//mouse button down & up
 void mouseFunc(int button, int state, int x, int y) {
 	KeyState s;
 	Key k;
@@ -183,7 +183,7 @@ void mouseFunc(int button, int state, int x, int y) {
 	keyStates[k] = s;
 }
 
-//鼠标移动
+//mouse move
 void motionFunc(int x, int y) {
 	//debug 
 	//std::cout << "Mouse Motion: x = " << x << " y = " << y << std::endl;
@@ -191,13 +191,13 @@ void motionFunc(int x, int y) {
 	currentMousePosition.y = y;
 }
 
-//仅鼠标移动
+//only mouse move
 void passiveMotionFunc(int x, int y) {
 	//std::cout << "Passive Mouse Motion: x = " << x << " y = " << y << std::endl;
 	motionFunc(x, y);
 }
 
-//设置GLUT的键盘鼠标事件回调函数
+//setup glut callbacks
 void setupInput()
 {
 	glutKeyboardFunc(keyboardFunc);
@@ -207,20 +207,26 @@ void setupInput()
 	glutPassiveMotionFunc(motionFunc);
 }
 
-//更新输入记录状态，每渲染一帧进行一次更新
+//update input state, once per frame
 void updateInput()
 {
 	lastMousePosition = currentMousePosition;
 }
 
 void updateTransform(GameObject* root) {
+	//calculate object local and world transform matrix
+	//by using modelview matrix stack and gl functions
+	//
+	//push stack to protect parent transform matrix
+	//
 	glMatrixMode(GL_MODELVIEW);
-
 	glPushMatrix();
 
 	Transform* t = root->GetComponent<Transform>();
 	if (t != nullptr)
 	{
+		//calculate object local matrix
+		//
 		glPushMatrix();
 		glLoadIdentity();
 
@@ -229,12 +235,17 @@ void updateTransform(GameObject* root) {
 		glRotatef(t->rotation.y, 0, 1, 0);
 		glRotatef(t->rotation.x, 1, 0, 0);
 		glScalef(t->scale.x, t->scale.y, t->scale.z);
+
+		//save local matrix
 		glGetFloatv(GL_MODELVIEW_MATRIX, (float*)t->LocalMatrix);
 		glPopMatrix();
 
+		//calculate object world matrix
 		glMultMatrixf((float*)t->LocalMatrix);
+		//save world matrix
 		glGetFloatv(GL_MODELVIEW_MATRIX, (float*)t->WorldMatrix);
 	}
+	//update child nodes
 	auto child = root->GetChildList();
 	for (auto i = child.begin();i != child.end();i++) {
 		updateTransform(i->get());
@@ -246,26 +257,24 @@ void updateTransform(GameObject* root) {
 
 void Renderer::Render() {
 	glEnable(GL_LIGHTING);
+
+	//load world matrix
 	auto transform = this->gameObject->GetComponent<Transform>();
 	if (transform)
 	{
 		glMatrixMode(GL_MODELVIEW);
-		/*glLoadMatrixf((float*)transform->WorldMatrix);
-		glLightfv(GL_LIGHT0, GL_POSITION, sun_light_position);*/
 		glLoadMatrixf(viewMatrix);
 		glMultMatrixf((float*)transform->WorldMatrix);
 	}
 
+	//load material
 	auto mat = this->gameObject->GetComponent<Material>();
-	//Texture* baseTexture = nullptr;
 	UVTransform* uvtransform = nullptr;
 	if (mat && mat->texture.size() > 0) {
 		glEnable(GL_TEXTURE_2D);
 		auto tex = mat->texture[0];
 		if (tex)
 		{
-			//baseTexture = tex.get();
-			//glLightfv(GL_LIGHT0, GL_POSITION, sun_light_position);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex->width, tex->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex->pixelData);
 		}
 		uvtransform = mat->uvTransform.get();
@@ -276,6 +285,8 @@ void Renderer::Render() {
 			glDisable(GL_LIGHTING);
 		}
 	}
+	//if object has no material or texture, disable texture
+	//otherwise GL will use previous texture
 	else {
 		glDisable(GL_TEXTURE_2D);
 	}
@@ -299,11 +310,39 @@ void Renderer::Render() {
 	glEnd();
 }
 
+void PlaneShadowRenderer::Render()
+{
+	auto transform = this->gameObject->GetComponent<Transform>();
+	if (!transform)
+		return;
+
+	glMatrixMode(GL_MODELVIEW);
+	glLoadMatrixf(viewMatrix);
+	glMultMatrixf(castMatrix);
+	glMultMatrixf((float*)transform->WorldMatrix);
+
+
+	auto mesh = this->gameObject->GetComponent<Mesh>();
+	if (!mesh)
+		return;
+	VertexFormat* v = (VertexFormat*)mesh->GetMeshData();
+	int triangleCount = mesh->GetTriangleCount();
+	
+	glColor3f(0, 0, 0);
+	glDisable(GL_LIGHTING);
+	glDisable(GL_TEXTURE_2D);
+	glBegin(GL_TRIANGLES);
+	for (int i = 0;i < triangleCount * 3;i++) {
+		glVertex3fv(v[i].Position);
+	}
+	glEnd();
+}
+
+
 void GridRenderer::Render() {
 	auto transform = this->gameObject->GetComponent<Transform>();
 	if (transform)
 	{
-		//glLoadMatrixf((float*)transform->WorldMatrix);
 		glLoadMatrixf(viewMatrix);
 		glMultMatrixf((float*)transform->WorldMatrix);
 	}
@@ -378,21 +417,16 @@ Vector3 Transform::Up() {
 
 void Transform::Translate(Vector3 v)
 {
-	/*LocalMatrix[3][0] += v.x;
-	LocalMatrix[3][1] += v.y;
-	LocalMatrix[3][2] += v.z;*/
 	translation = translation + v;
 }
 #define _180_PI 57.2957795131
 void Transform::Rotate(Vector3 axis, float angle)
 {
-	//rotation.y += angle;
 	float m[4][4];
 	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
 	glLoadIdentity();
-	//glGetFloatv(GL_MODELVIEW_MATRIX, (float*)m);
-	//glLoadIdentity();
+
 	glRotatef(rotation.z, 0, 0, 1);
 	glRotatef(rotation.y, 0, 1, 0);
 	glRotatef(rotation.x, 1, 0, 0);
@@ -425,7 +459,7 @@ Transform Transform::World() {
 
 
 void drawConsole(Console* con) {
-
+	//set matrix to identity
 	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
 	glLoadIdentity();
@@ -437,30 +471,29 @@ void drawConsole(Console* con) {
 	Font* font = con->GetFont();
 	auto content = con->GetContent();
 
-
-
+	//calculate character width and height in GL coordinate
 	float boderWidth = 2.0f / con->Width();
 	float boderHeight = 2.0f / con->Height();
 
+	//draw each line
 	int lineno = 0;
 	for (auto r = content->begin();r != content->end();r++) {
 		int len = r->size();
-		
+		//draw each character
 		for (int c = 0;c < len;c++) {
-
+			//render character to texture
 			wchar_t character = (*r)[c];
+			//font object has a texture cache, do not free this memory
 			Texture* tex = font->RenderChar(character);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex->Width(), tex->Height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, tex->GetPixel());
-
-
-			//glDisable(GL_TEXTURE_2D);
+			//draw quad
 			glDisable(GL_LIGHTING);
 			glBegin(GL_QUADS);
 			glColor3f(1, 1, 1);
 
 
 			glTexCoord2f(0, 1);
-			glVertex3f(-1 + boderWidth*c, 1 - boderHeight*(lineno+1), 0);
+			glVertex3f(-1 + boderWidth*c, 1 - boderHeight*(lineno + 1), 0);
 
 			glTexCoord2f(1, 1);
 			glVertex3f(-1 + boderWidth*(c + 1), 1 - boderHeight*(lineno + 1), 0);
@@ -472,9 +505,7 @@ void drawConsole(Console* con) {
 			glVertex3f(-1 + boderWidth*c, 1 - boderHeight*lineno, 0);
 			glEnd();
 
-
 		}
-
 
 		lineno++;
 
@@ -482,7 +513,5 @@ void drawConsole(Console* con) {
 	glPopMatrix();
 	glMatrixMode(GL_MODELVIEW);
 	glPopMatrix();
-
-
 
 }

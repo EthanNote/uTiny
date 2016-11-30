@@ -1,6 +1,7 @@
 #pragma once
+#include "GameObject.h"
 #include "Component.h"
-
+#include "Vector3.h"
 #ifndef UTINY_API
 
 #define UTINY_API __declspec(dllimport)
@@ -22,4 +23,14 @@ public:
 
 class UTINY_API GridRenderer :public Renderer {
 	virtual void Render() override;
+};
+
+class UTINY_API PlaneShadowRenderer : public Renderer {
+	float castMatrix[16];
+	virtual void Render() override;
+public:
+	void SetupCastParameter(Vector3 lightPosition, Vector3 planeNormal, Vector3 planePoint);
+	void SetupCastParameter(Vector3 lightPosition);
+	PlaneShadowRenderer();
+	static void Assign(PlaneShadowRenderer* renderer, GameObject* object);
 };

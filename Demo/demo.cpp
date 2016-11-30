@@ -208,6 +208,11 @@ public:
 		CamCenter->GetScript<CameraController>()->following = r->GetComponent<Transform>();
 
 		cam->SetSkyObject(scene->FindChildRecursively("sky"));
+
+		auto shadowRenderer = new PlaneShadowRenderer;
+		PlaneShadowRenderer::Assign(shadowRenderer,scene->FindChildRecursively("Model"));
+		//scene->FindChildRecursively("body")->AddComponent(new PlaneShadowRenderer());
+
 	}
 };
 

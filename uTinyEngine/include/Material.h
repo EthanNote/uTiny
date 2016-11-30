@@ -27,6 +27,7 @@ public:
 	//void Apply();
 
 	bool lighting;
+	bool castShadow;
 
 	std::vector<std::shared_ptr<Texture>> texture;
 	std::shared_ptr<UVTransform> uvTransform;
